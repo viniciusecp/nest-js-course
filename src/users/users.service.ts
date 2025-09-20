@@ -17,6 +17,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       omit: { passwordHash: true },
+      include: { Task: true },
     });
 
     if (!user) {

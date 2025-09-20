@@ -19,7 +19,14 @@ export class TasksService {
   }
 
   async findOne(id: number) {
-    const task = await this.prisma.task.findUnique({ where: { id } });
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: {
+        user: {
+          omit: { passwordHash: true },
+        },
+      },
+    });
 
     if (!task) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
@@ -28,8 +35,18 @@ export class TasksService {
     return task;
   }
 
-  create(createTaskDto: CreateTaskDto) {
-    return this.prisma.task.create({ data: createTaskDto });
+  async create(createTaskDto: CreateTaskDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: createTaskDto.userId },
+    });
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    return this.prisma.task.create({
+      data: createTaskDto,
+    });
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto) {
