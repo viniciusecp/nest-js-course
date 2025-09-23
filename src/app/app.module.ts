@@ -13,7 +13,13 @@ import { LoggerMiddleware } from 'src/common/middlewares/logger.middleware';
 @Module({
   imports: [TasksModule, UsersModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: AuthAdminGuard,
+    // },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
