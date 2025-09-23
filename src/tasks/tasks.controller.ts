@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Inject,
   Param,
   ParseIntPipe,
   Patch,
@@ -27,8 +26,8 @@ export class TasksController {
   constructor(
     private readonly tasksService: TasksService,
 
-    @Inject('KEY_TOKEN')
-    private readonly keyToken: string,
+    // @Inject('KEY_TOKEN')
+    // private readonly keyToken: string,
   ) {}
 
   @Get()
