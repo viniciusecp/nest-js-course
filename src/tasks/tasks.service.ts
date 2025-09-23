@@ -3,13 +3,19 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { TaskUtils } from './tasks.utils';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private taskUtils: TaskUtils,
+  ) {}
 
   findAll(paginationDto: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDto;
+
+    // console.log(this.taskUtils.splitString('Testando injeção de dependência'));
 
     return this.prisma.task.findMany({
       take: limit,

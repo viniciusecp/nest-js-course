@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Inject,
   Param,
   ParseIntPipe,
   Patch,
@@ -23,12 +24,19 @@ import { AuthAdminGuard } from 'src/common/guards/admin.guard';
 @Controller('tasks')
 @UseGuards(AuthAdminGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+
+    @Inject('KEY_TOKEN')
+    private readonly keyToken: string,
+  ) {}
 
   @Get()
   @UseInterceptors(LoggerInterceptor, AddHeaderInterceptor)
   // @UseGuards(AuthAdminGuard)
   findAll(@Query() paginationDto: PaginationDto) {
+    // console.log('KEY_TOKEN', this.keyToken);
+
     return this.tasksService.findAll(paginationDto);
   }
 
