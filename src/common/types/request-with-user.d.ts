@@ -1,10 +1,6 @@
 import { Request } from 'express';
-
-interface User {
-  token: string;
-  role: string;
-}
+import { JwtPayload } from './jwt-payload';
 
 export interface RequestWithUser extends Request {
-  user?: User;
+  user?: JwtPayload;
 }
