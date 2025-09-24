@@ -39,13 +39,15 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @TokenPayloadParam() tokenPayload: PayloadTokenDto,
   ) {
-    console.log('tokenPayload', tokenPayload.sub);
-
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, tokenPayload);
   }
 
+  @UseGuards(AuthTokenGuard)
   @Delete(':id')
-  delete(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.delete(id);
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @TokenPayloadParam() tokenPayload: PayloadTokenDto,
+  ) {
+    return this.usersService.delete(id, tokenPayload);
   }
 }

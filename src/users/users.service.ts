@@ -4,11 +4,13 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
+import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
 
 @Injectable()
 export class UsersService {
@@ -57,7 +59,15 @@ export class UsersService {
     }
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    tokenPayload: PayloadTokenDto,
+  ) {
+    if (tokenPayload.sub !== id) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
     const user = await this.prisma.user.findFirst({ where: { id } });
 
     if (!user) {
@@ -84,7 +94,11 @@ export class UsersService {
     }
   }
 
-  async delete(id: number) {
+  async delete(id: number, tokenPayload: PayloadTokenDto) {
+    if (tokenPayload.sub !== id) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
     const user = await this.prisma.user.findFirst({ where: { id } });
 
     if (!user) {
