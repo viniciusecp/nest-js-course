@@ -1,9 +1,15 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { TaskUtils } from './tasks.utils';
+import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
 
 @Injectable()
 export class TasksService {
@@ -41,9 +47,9 @@ export class TasksService {
     return task;
   }
 
-  async create(createTaskDto: CreateTaskDto) {
+  async create(createTaskDto: CreateTaskDto, tokenPayload: PayloadTokenDto) {
     const user = await this.prisma.user.findUnique({
-      where: { id: createTaskDto.userId },
+      where: { id: tokenPayload.sub },
     });
 
     if (!user) {
@@ -51,25 +57,44 @@ export class TasksService {
     }
 
     return this.prisma.task.create({
-      data: createTaskDto,
+      data: {
+        ...createTaskDto,
+        userId: tokenPayload.sub,
+      },
     });
   }
 
-  async update(id: number, updateTaskDto: UpdateTaskDto) {
+  async update(
+    id: number,
+    updateTaskDto: UpdateTaskDto,
+    tokenPayload: PayloadTokenDto,
+  ) {
     const task = await this.prisma.task.findFirst({ where: { id } });
 
     if (!task) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
     }
 
+    if (task.userId !== tokenPayload.sub) {
+      throw new UnauthorizedException(
+        'You are not allowed to update this task',
+      );
+    }
+
     return this.prisma.task.update({ where: { id }, data: updateTaskDto });
   }
 
-  async delete(id: number) {
+  async delete(id: number, tokenPayload: PayloadTokenDto) {
     const task = await this.prisma.task.findFirst({ where: { id } });
 
     if (!task) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (task.userId !== tokenPayload.sub) {
+      throw new UnauthorizedException(
+        'You are not allowed to delete this task',
+      );
     }
 
     return this.prisma.task.delete({ where: { id } });

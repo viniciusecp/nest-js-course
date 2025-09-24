@@ -1,10 +1,8 @@
-import { OmitType, PartialType } from '@nestjs/mapped-types';
+import { PartialType } from '@nestjs/mapped-types';
 import { IsBoolean, IsOptional } from 'class-validator';
 import { CreateTaskDto } from './create-task.dto';
 
-export class UpdateTaskDto extends PartialType(
-  OmitType(CreateTaskDto, ['userId']),
-) {
+export class UpdateTaskDto extends PartialType(CreateTaskDto) {
   @IsBoolean()
   @IsOptional()
   readonly completed?: boolean;
