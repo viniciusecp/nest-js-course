@@ -19,11 +19,11 @@ export class AuthService {
 
   async authenticate(signInDto: SignInDto) {
     const user = await this.prisma.user.findUnique({
-      where: { email: signInDto.email },
+      where: { email: signInDto.email, active: true },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Error on creating login');
+      throw new UnauthorizedException('User/Password incorrect');
     }
 
     const isValidPassword = await this.hashingService.compare(

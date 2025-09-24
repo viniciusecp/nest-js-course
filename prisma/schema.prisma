@@ -24,5 +24,7 @@ model User {
   passwordHash  String
   email         String @unique
   createdAt     DateTime? @default(now())
+  active        Boolean @default(true)
+  
   Task          Task[]
 }
