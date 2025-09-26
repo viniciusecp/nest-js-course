@@ -1,18 +1,18 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { RequestWithUser } from 'src/auth/types/request-with-user';
+// import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+// import { Observable } from 'rxjs';
+// import { RequestWithUser } from 'src/auth/types/request-with-user';
 
-@Injectable()
-export class AuthAdminGuard implements CanActivate {
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
+// @Injectable()
+// export class AuthAdminGuard implements CanActivate {
+//   canActivate(
+//     context: ExecutionContext,
+//   ): boolean | Promise<boolean> | Observable<boolean> {
+//     const request = context.switchToHttp().getRequest<RequestWithUser>();
 
-    // if (request.user?.role === 'admin') {
-    //   return true;
-    // }
+//     if (request.user?.role === 'admin') {
+//       return true;
+//     }
 
-    return false;
-  }
-}
+//     return false;
+//   }
+// }
