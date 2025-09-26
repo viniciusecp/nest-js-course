@@ -9,24 +9,24 @@ datasource db {
 }
 
 model Task {
-  id           Int @id @default(autoincrement())
-  name         String
-  description  String  
-  completed    Boolean @default(false)
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String
+  completed   Boolean @default(false)
 
-  createdAt    DateTime? @default(now())
-  userId       Int?
-  user         User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime? @default(now())
+  userId    Int?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id            Int @id @default(autoincrement())
-  name          String
-  passwordHash  String
-  email         String @unique
-  active        Boolean @default(true)
-  avatar        String?
-  
-  createdAt     DateTime? @default(now())
-  Task          Task[]
+  id           Int     @id @default(autoincrement())
+  name         String
+  passwordHash String
+  email        String  @unique
+  active       Boolean @default(true)
+  avatar       String?
+
+  createdAt DateTime? @default(now())
+  Task      Task[]
 }
