@@ -3,6 +3,7 @@ import { UsersService } from './users.service';
 import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateUserDto } from './dto/create-user.dto';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -18,6 +19,7 @@ describe('UsersService', () => {
           useValue: {
             user: {
               create: jest.fn(),
+              findUnique: jest.fn(),
             },
           },
         },
@@ -67,7 +69,6 @@ describe('UsersService', () => {
       .mockResolvedValue(createdUserMock);
 
     const createdUser = await usersService.create(createUserDto);
-    console.log('createdUser', createdUser);
 
     expect(hashSpy).toHaveBeenCalledWith(createUserDto.password);
 
@@ -85,5 +86,42 @@ describe('UsersService', () => {
     });
 
     expect(createdUser).toEqual(createdUserMock);
+  });
+
+  it('should return a user', async () => {
+    const userId = 1;
+
+    const mockUser = {
+      id: userId,
+      name: 'John',
+      email: 'john@doe.com',
+      passwordHash: 'ENCRYPTED_PASSWORD',
+      active: true,
+      avatar: null,
+      createdAt: new Date(),
+      Task: [],
+    };
+
+    const findUserSpy = jest
+      .spyOn(prismaService.user, 'findUnique')
+      .mockResolvedValue(mockUser);
+
+    const user = await usersService.findOne(userId);
+
+    expect(findUserSpy).toHaveBeenCalledWith({
+      where: { id: userId },
+      omit: { passwordHash: true },
+      include: { Task: true },
+    });
+
+    expect(user).toEqual(mockUser);
+  });
+
+  it('should throw an error exception when user is not found', async () => {
+    jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(null);
+
+    await expect(usersService.findOne(1)).rejects.toThrow(
+      new HttpException('User not found', HttpStatus.NOT_FOUND),
+    );
   });
 });
