@@ -3,7 +3,11 @@ import { UsersService } from './users.service';
 import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateUserDto } from './dto/create-user.dto';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 describe('UsersService', () => {
   let usersService: UsersService;
@@ -86,6 +90,28 @@ describe('UsersService', () => {
     });
 
     expect(createdUser).toEqual(createdUserMock);
+  });
+
+  it('should throw an error exception if prisma crete fails', async () => {
+    const createUserDto: CreateUserDto = {
+      name: 'John',
+      email: 'john@doe.com',
+      password: '123456',
+    };
+
+    const consoleErrorSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    jest
+      .spyOn(prismaService.user, 'create')
+      .mockRejectedValue(new Error('Database error'));
+
+    await expect(usersService.create(createUserDto)).rejects.toThrow(
+      new InternalServerErrorException('Error on user registration'),
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('should return a user', async () => {
