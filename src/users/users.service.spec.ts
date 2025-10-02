@@ -29,6 +29,7 @@ describe('UsersService', () => {
               create: jest.fn(),
               findUnique: jest.fn(),
               findFirst: jest.fn(),
+              update: jest.fn(),
             },
           },
         },
@@ -193,6 +194,165 @@ describe('UsersService', () => {
       await expect(
         usersService.update(1, updateUserDto, payloadTokenDto),
       ).rejects.toThrow(new NotFoundException('User not found'));
+    });
+
+    it('should update user without password', async () => {
+      const userId = 1;
+      const newName = 'John Doe';
+      const updateUserDto: UpdateUserDto = { name: 'John Doe' };
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: userId,
+        aud: '',
+        email: 'johndoe@mail.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const mockUser = {
+        id: userId,
+        name: 'John',
+        email: 'john@doe.com',
+        passwordHash: 'ENCRYPTED_PASSWORD',
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+        Task: [],
+      };
+      const updatedUserMock = {
+        id: userId,
+        name: newName,
+        email: 'john@doe.com',
+        passwordHash: 'ENCRYPTED_PASSWORD',
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+        Task: [],
+      };
+
+      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(mockUser);
+
+      const updateUserSpy = jest
+        .spyOn(prismaService.user, 'update')
+        .mockResolvedValue(updatedUserMock);
+
+      const updatedUser = await usersService.update(
+        userId,
+        updateUserDto,
+        payloadTokenDto,
+      );
+
+      expect(updateUserSpy).toHaveBeenCalledWith({
+        where: { id: userId },
+        data: updateUserDto,
+        omit: { passwordHash: true },
+      });
+
+      expect(updatedUser).toEqual(updatedUserMock);
+    });
+
+    it('should update user with password', async () => {
+      const userId = 1;
+      const newName = 'John Doe';
+      const newEncryptedPassword = 'NEW_ENCRYPTED_PASSWORD';
+      const updateUserDto: UpdateUserDto = {
+        name: newName,
+        password: 'new-password',
+      };
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: userId,
+        aud: '',
+        email: 'johndoe@mail.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const mockUser = {
+        id: userId,
+        name: 'John',
+        email: 'john@doe.com',
+        passwordHash: 'ENCRYPTED_PASSWORD',
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+      };
+      const updatedUserMock = {
+        id: userId,
+        name: newName,
+        email: 'john@doe.com',
+        passwordHash: newEncryptedPassword,
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+      };
+
+      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(mockUser);
+
+      const hashSpy = jest
+        .spyOn(hashingService, 'hash')
+        .mockResolvedValue(newEncryptedPassword);
+
+      const updateUserSpy = jest
+        .spyOn(prismaService.user, 'update')
+        .mockResolvedValue(updatedUserMock);
+
+      const updatedUser = await usersService.update(
+        userId,
+        updateUserDto,
+        payloadTokenDto,
+      );
+
+      expect(hashSpy).toHaveBeenCalledWith(updateUserDto.password);
+
+      expect(updateUserSpy).toHaveBeenCalledWith({
+        where: { id: userId },
+        data: {
+          name: newName,
+          passwordHash: newEncryptedPassword,
+        },
+        omit: { passwordHash: true },
+      });
+
+      expect(updatedUser).toEqual(updatedUserMock);
+    });
+
+    it('should thrown an exception if update user fails', async () => {
+      const updateUserDto: UpdateUserDto = { name: 'John Doe' };
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@mail.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const mockUser = {
+        id: 1,
+        name: 'John',
+        email: 'john@doe.com',
+        passwordHash: 'ENCRYPTED_PASSWORD',
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+        Task: [],
+      };
+
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(mockUser);
+
+      jest
+        .spyOn(prismaService.user, 'update')
+        .mockRejectedValue(new Error('Database error'));
+
+      await expect(
+        usersService.update(1, updateUserDto, payloadTokenDto),
+      ).rejects.toThrow(
+        new InternalServerErrorException('Error on user update'),
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });
