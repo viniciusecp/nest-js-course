@@ -12,12 +12,18 @@ import {
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
+import { PrismaClientKnownRequestError } from 'generated/prisma/runtime/library';
+import { PrismaError } from 'src/prisma/common/prisma-error.constants';
+import { User } from 'generated/prisma';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+
+jest.mock('node:fs/promises');
 
 describe('UsersService', () => {
   let usersService: UsersService;
   let prismaService: PrismaService;
   let hashingService: HashingServiceProtocol;
-  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -48,11 +54,11 @@ describe('UsersService', () => {
     prismaService = module.get(PrismaService);
     hashingService = module.get(HashingServiceProtocol);
 
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore();
+    jest.clearAllMocks();
   });
 
   it('should be defined users service', () => {
@@ -451,6 +457,157 @@ describe('UsersService', () => {
 
       await expect(usersService.delete(1, payloadTokenDto)).rejects.toThrow(
         new InternalServerErrorException('Error on user update'),
+      );
+    });
+  });
+
+  describe('Upload Avatar Image', () => {
+    it('should update avatar of a user and save file', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@doe.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+
+      const file = {
+        originalname: 'avatar.png',
+        mimetype: 'image/png',
+        buffer: Buffer.from(''),
+      } as Express.Multer.File;
+
+      const updatedUserMock = {
+        id: 1,
+        name: 'John Doe',
+        email: 'john@doe.com',
+        avatar: '1.png',
+      } as User;
+
+      const fileName = '1.png';
+
+      const fileLocale = path.resolve(process.cwd(), 'files', fileName);
+
+      const updateAvatarSpy = jest
+        .spyOn(prismaService.user, 'update')
+        .mockResolvedValue(updatedUserMock);
+
+      const updatedUser = await usersService.uploadAvatarImage(
+        payloadTokenDto,
+        file,
+      );
+
+      expect(updateAvatarSpy).toHaveBeenCalledWith({
+        where: {
+          id: payloadTokenDto.sub,
+        },
+        data: {
+          avatar: fileName,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+        },
+      });
+
+      expect(fs.writeFile).toHaveBeenCalledWith(fileLocale, file.buffer);
+
+      expect(updatedUser).toEqual(updatedUserMock);
+    });
+
+    it('should throw an exception when user is not found', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@doe.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const file = {
+        originalname: 'example.png',
+        mimetype: 'text/plain',
+        buffer: Buffer.from('This is the content of the file.'),
+      } as Express.Multer.File;
+
+      jest.spyOn(prismaService.user, 'update').mockRejectedValue(
+        new PrismaClientKnownRequestError('Database error', {
+          clientVersion: '1',
+          code: PrismaError.RecordNotFound,
+        }),
+      );
+
+      await expect(
+        usersService.uploadAvatarImage(payloadTokenDto, file),
+      ).rejects.toThrow(
+        new NotFoundException(`User with ID ${payloadTokenDto.sub} not found.`),
+      );
+    });
+
+    it('should throw an exception when writeFile fails', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@doe.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+
+      const file = {
+        originalname: 'example.png',
+        mimetype: 'text/plain',
+        buffer: Buffer.from('This is the content of the file.'),
+      } as Express.Multer.File;
+
+      const updatedUserMock = {
+        id: 1,
+        name: 'John Doe',
+        email: 'john@doe.com',
+        avatar: '1.png',
+      } as User;
+
+      jest
+        .spyOn(prismaService.user, 'update')
+        .mockResolvedValue(updatedUserMock);
+
+      jest
+        .spyOn(fs, 'writeFile')
+        .mockRejectedValue(new Error('Fail on write file'));
+
+      await expect(
+        usersService.uploadAvatarImage(payloadTokenDto, file),
+      ).rejects.toThrow(
+        new InternalServerErrorException('Error on updating user avatar.'),
+      );
+    });
+
+    it('should throw an exception when user has a generic error', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@doe.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const file = {
+        originalname: 'example.png',
+        mimetype: 'text/plain',
+        buffer: Buffer.from('This is the content of the file.'),
+      } as Express.Multer.File;
+
+      jest
+        .spyOn(prismaService.user, 'update')
+        .mockRejectedValue(new Error('Database error'));
+
+      await expect(
+        usersService.uploadAvatarImage(payloadTokenDto, file),
+      ).rejects.toThrow(
+        new InternalServerErrorException('Error on updating user avatar.'),
       );
     });
   });

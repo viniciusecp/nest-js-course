@@ -124,7 +124,10 @@ export class UsersService {
     tokenPayload: PayloadTokenDto,
     file: Express.Multer.File,
   ) {
-    const fileExtension = path.extname(file.originalname).toLowerCase();
+    const fileExtension = path
+      .extname(file.originalname)
+      .toLowerCase()
+      .substring(1);
 
     const fileName = `${tokenPayload.sub}.${fileExtension}`;
     const fileLocale = path.resolve(process.cwd(), 'files', fileName);
