@@ -110,7 +110,7 @@ export class UsersService {
     }
 
     try {
-      return this.prisma.user.delete({
+      await this.prisma.user.delete({
         where: { id },
         omit: { passwordHash: true },
       });

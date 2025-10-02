@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
   ParseFilePipeBuilder,
@@ -48,6 +49,7 @@ export class UsersController {
   }
 
   @UseGuards(AuthTokenGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
   delete(
     @Param('id', ParseIntPipe) id: number,

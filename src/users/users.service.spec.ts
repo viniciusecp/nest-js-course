@@ -17,6 +17,7 @@ describe('UsersService', () => {
   let usersService: UsersService;
   let prismaService: PrismaService;
   let hashingService: HashingServiceProtocol;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -30,6 +31,7 @@ describe('UsersService', () => {
               findUnique: jest.fn(),
               findFirst: jest.fn(),
               update: jest.fn(),
+              delete: jest.fn(),
             },
           },
         },
@@ -45,6 +47,12 @@ describe('UsersService', () => {
     usersService = module.get(UsersService);
     prismaService = module.get(PrismaService);
     hashingService = module.get(HashingServiceProtocol);
+
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('should be defined users service', () => {
@@ -106,10 +114,6 @@ describe('UsersService', () => {
         password: '123456',
       };
 
-      const consoleErrorSpy = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
       jest
         .spyOn(prismaService.user, 'create')
         .mockRejectedValue(new Error('Database error'));
@@ -117,8 +121,6 @@ describe('UsersService', () => {
       await expect(usersService.create(createUserDto)).rejects.toThrow(
         new InternalServerErrorException('Error on user registration'),
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -336,10 +338,6 @@ describe('UsersService', () => {
         Task: [],
       };
 
-      const consoleErrorSpy = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
       jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(mockUser);
 
       jest
@@ -351,8 +349,109 @@ describe('UsersService', () => {
       ).rejects.toThrow(
         new InternalServerErrorException('Error on user update'),
       );
+    });
+  });
 
-      consoleErrorSpy.mockRestore();
+  describe('Delete User', () => {
+    it('should throw exception when user try delete another user', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@mail.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+
+      const deleteUserSpy = jest.spyOn(prismaService.user, 'delete');
+
+      await expect(usersService.delete(5, payloadTokenDto)).rejects.toThrow(
+        new UnauthorizedException('Unauthorized'),
+      );
+
+      expect(deleteUserSpy).not.toHaveBeenCalled();
+    });
+
+    it("should throw an exception if user doesn't exists", async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@mail.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+
+      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(null);
+
+      await expect(usersService.delete(1, payloadTokenDto)).rejects.toThrow(
+        new NotFoundException('User not found'),
+      );
+    });
+
+    it('should delete an user', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@doe.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const mockUser = {
+        id: 1,
+        name: 'John',
+        email: 'john@doe.com',
+        passwordHash: 'ENCRYPTED_PASSWORD',
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+      };
+
+      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(mockUser);
+
+      const deleteUserSpy = jest
+        .spyOn(prismaService.user, 'delete')
+        .mockResolvedValue(mockUser);
+
+      const deletedUser = await usersService.delete(1, payloadTokenDto);
+
+      expect(deleteUserSpy).toHaveBeenCalledWith({
+        where: { id: 1 },
+        omit: { passwordHash: true },
+      });
+
+      expect(deletedUser).toBeUndefined();
+    });
+
+    it('should throw an exception if database delete fails', async () => {
+      const payloadTokenDto: PayloadTokenDto = {
+        sub: 1,
+        aud: '',
+        email: 'johndoe@doe.com',
+        exp: 123,
+        iat: 123,
+        iss: '',
+      };
+      const mockUser = {
+        id: 1,
+        name: 'John',
+        email: 'john@doe.com',
+        passwordHash: 'ENCRYPTED_PASSWORD',
+        active: true,
+        avatar: null,
+        createdAt: new Date(),
+      };
+
+      jest.spyOn(prismaService.user, 'findFirst').mockResolvedValue(mockUser);
+
+      jest
+        .spyOn(prismaService.user, 'delete')
+        .mockRejectedValue(new Error('Database fails'));
+
+      await expect(usersService.delete(1, payloadTokenDto)).rejects.toThrow(
+        new InternalServerErrorException('Error on user update'),
+      );
     });
   });
 });
