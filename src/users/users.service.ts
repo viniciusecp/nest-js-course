@@ -90,7 +90,7 @@ export class UsersService {
       return await this.prisma.user.update({
         where: { id },
         data: updateUser,
-        omit: { passwordHash: true },
+        select: { id: true, name: true, email: true },
       });
     } catch (error) {
       console.error(error);

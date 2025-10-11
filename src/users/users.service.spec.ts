@@ -252,7 +252,7 @@ describe('UsersService', () => {
       expect(updateUserSpy).toHaveBeenCalledWith({
         where: { id: userId },
         data: updateUserDto,
-        omit: { passwordHash: true },
+        select: { id: true, name: true, email: true },
       });
 
       expect(updatedUser).toEqual(updatedUserMock);
@@ -317,7 +317,7 @@ describe('UsersService', () => {
           name: newName,
           passwordHash: newEncryptedPassword,
         },
-        omit: { passwordHash: true },
+        select: { id: true, name: true, email: true },
       });
 
       expect(updatedUser).toEqual(updatedUserMock);
