@@ -10,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { TaskUtils } from './tasks.utils';
 import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
+import { ResponseTaskDto } from './dto/response-task.dto';
 
 @Injectable()
 export class TasksService {
@@ -18,7 +19,7 @@ export class TasksService {
     private taskUtils: TaskUtils,
   ) {}
 
-  findAll(paginationDto: PaginationDto) {
+  findAll(paginationDto: PaginationDto): Promise<ResponseTaskDto[]> {
     const { limit = 10, offset = 0 } = paginationDto;
 
     // console.log(this.taskUtils.splitString('Testando injeção de dependência'));
@@ -30,7 +31,7 @@ export class TasksService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<ResponseTaskDto> {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
@@ -47,7 +48,10 @@ export class TasksService {
     return task;
   }
 
-  async create(createTaskDto: CreateTaskDto, tokenPayload: PayloadTokenDto) {
+  async create(
+    createTaskDto: CreateTaskDto,
+    tokenPayload: PayloadTokenDto,
+  ): Promise<ResponseTaskDto> {
     const user = await this.prisma.user.findUnique({
       where: { id: tokenPayload.sub },
     });
@@ -68,7 +72,7 @@ export class TasksService {
     id: number,
     updateTaskDto: UpdateTaskDto,
     tokenPayload: PayloadTokenDto,
-  ) {
+  ): Promise<ResponseTaskDto> {
     const task = await this.prisma.task.findFirst({ where: { id } });
 
     if (!task) {
@@ -84,7 +88,10 @@ export class TasksService {
     return this.prisma.task.update({ where: { id }, data: updateTaskDto });
   }
 
-  async delete(id: number, tokenPayload: PayloadTokenDto) {
+  async delete(
+    id: number,
+    tokenPayload: PayloadTokenDto,
+  ): Promise<ResponseTaskDto> {
     const task = await this.prisma.task.findFirst({ where: { id } });
 
     if (!task) {
